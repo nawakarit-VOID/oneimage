@@ -55,6 +55,8 @@ func runBuild(output *widget.Entry) {
 	output.SetText(string(out))
 }
 
+var isGenerated bool //
+
 func main() {
 
 	a := app.NewWithID("com.nawakarit.oneimage")
@@ -78,8 +80,37 @@ func main() {
 	scroll := container.NewScroll(output)
 	scroll.SetMinSize(fyne.NewSize(600, 300))
 
-	// buttons
-	generateBtn := widget.NewButton("Generate Script", func() {
+	// buttons set
+	generateBtn := widget.NewButton("Generate Script", nil)
+	buildBtn := widget.NewButton("Build AppImage", nil)
+
+	generateBtn.Disable()
+	buildBtn.Disable()
+
+	updateState := func() {
+		// 🔹 validate input
+		if appName.Text != "" && execName.Text != "" && displayName.Text != "" {
+			generateBtn.Enable()
+		} else {
+			generateBtn.Disable()
+		}
+
+		// 🔥 reset build state ทุกครั้งที่มีการแก้
+		isGenerated = false
+		buildBtn.Disable()
+	}
+
+	appName.OnChanged = func(string) {
+		updateState()
+	}
+	execName.OnChanged = func(string) {
+		updateState()
+	}
+	displayName.OnChanged = func(string) {
+		updateState()
+	}
+
+	generateBtn.OnTapped = func() {
 		cfg := BuildConfig{
 			AppName:     appName.Text,
 			ExecName:    execName.Text,
@@ -94,9 +125,10 @@ func main() {
 
 		output.SetText("✅ Script Generated:\n\n" + script)
 
+		// เปิดปุ่ม build
+		isGenerated = true
+		buildBtn.Enable()
 		////////text setup/////////
-		// popup แนะนำ
-
 		popup := a.NewWindow("📌 Setup Guide")
 
 		text := widget.NewMultiLineEntry()
@@ -125,17 +157,23 @@ func main() {
 			scroll,
 			widget.NewButton("Copy", func() {
 				a.Clipboard().SetContent(text.Text)
+
 			}),
 		))
 
 		popup.Resize(fyne.NewSize(600, 400))
+		popup.SetFixedSize(true)
 		popup.Show()
 
-	})
+	}
 
-	buildBtn := widget.NewButton("Build AppImage", func() {
+	buildBtn.OnTapped = func() {
+		if !isGenerated {
+			return
+		}
+
 		runBuild(output)
-	})
+	}
 
 	// layout
 	top := container.NewVBox(
