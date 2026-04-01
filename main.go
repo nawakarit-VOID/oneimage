@@ -75,6 +75,8 @@ func main() {
 	output := widget.NewMultiLineEntry()
 	output.SetPlaceHolder("Output...")
 	output.Wrapping = fyne.TextWrapWord
+	scroll := container.NewScroll(output)
+	scroll.SetMinSize(fyne.NewSize(600, 300))
 
 	// buttons
 	generateBtn := widget.NewButton("Generate Script", func() {
@@ -91,6 +93,44 @@ func main() {
 		}
 
 		output.SetText("✅ Script Generated:\n\n" + script)
+
+		////////text setup/////////
+		// popup แนะนำ
+
+		popup := a.NewWindow("📌 Setup Guide")
+
+		text := widget.NewMultiLineEntry()
+		text.SetText(`
+		//เอาไปวางในตำแหน่ง func main()
+		
+		//func main() {
+				a := app.NewWithID("com.yourname.yourapp")
+				a.SetIcon(resourceIconPng)
+
+				w := a.NewWindow("yourApp")
+				w.SetIcon(resourceIconPng)
+				
+				//..............................your code................................}
+				
+				`)
+
+		text.Wrapping = fyne.TextWrapWord
+		text.Disable()
+
+		scroll := container.NewScroll(text)
+		scroll.SetMinSize(fyne.NewSize(600, 300)) //ยืดได้
+
+		popup.SetContent(container.NewVBox(
+			widget.NewLabel("ก่อนกด Build AppImage ให้ Copy โค้ดด้านล่าง 👇"),
+			scroll,
+			widget.NewButton("Copy", func() {
+				a.Clipboard().SetContent(text.Text)
+			}),
+		))
+
+		popup.Resize(fyne.NewSize(600, 400))
+		popup.Show()
+
 	})
 
 	buildBtn := widget.NewButton("Build AppImage", func() {
@@ -98,17 +138,23 @@ func main() {
 	})
 
 	// layout
-	content := container.NewVBox(
+	top := container.NewVBox(
 		widget.NewLabel("⚙️ Config"),
 		appName,
 		execName,
 		displayName,
 		container.NewHBox(generateBtn, buildBtn),
-		widget.NewLabel("📄 Output"),
-		output,
+		widget.NewLabel("📄 output"),
 	)
 
-	w.SetContent(content)
+	w.SetContent(container.NewBorder(
+		top,    // top
+		nil,    // bottom
+		nil,    // left
+		nil,    // right
+		scroll, // center
+	))
+
 	w.Resize(fyne.NewSize(600, 500))
 	w.ShowAndRun()
 }

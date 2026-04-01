@@ -4,6 +4,9 @@ set -e
 APP={{.AppName}}
 EXEC={{.ExecName}}
 
+echo "🎨 bundle icon..."
+fyne bundle icon.png > bundled.go
+
 echo "🔨 build..."
 go build -o $EXEC
 
