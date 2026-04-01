@@ -56,8 +56,11 @@ func runBuild(output *widget.Entry) {
 }
 
 func main() {
-	a := app.New()
-	w := a.NewWindow("🚀 AppImage Builder")
+
+	a := app.NewWithID("com.nawakarit.oneimage")
+	a.SetIcon(resourceIconPng)
+	w := a.NewWindow("oneimage")
+	w.SetIcon(resourceIconPng)
 
 	// inputs
 	appName := widget.NewEntry()
