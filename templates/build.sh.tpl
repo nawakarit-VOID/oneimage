@@ -29,8 +29,8 @@ cat > $APP.AppDir/$APP.desktop << EOF
 Name={{.DisplayName}}
 Exec={{.ExecName}}
 Icon={{.ExecName}}
-Type=Application
-Categories=Utility;
+Type={{.Type}}
+Categories={{.Categories}}
 Terminal=false
 EOF
 

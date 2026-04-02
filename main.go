@@ -16,6 +16,8 @@ type BuildConfig struct {
 	AppName     string
 	ExecName    string
 	DisplayName string
+	Type        string
+	Categories  string
 }
 
 func generateScript(cfg BuildConfig) (string, error) {
@@ -57,6 +59,17 @@ func runBuild(output *widget.Entry) {
 
 var isGenerated bool //
 
+// Categories เป็น string
+func getCategories(checks []*widget.Check) string {
+	var result string
+	for _, c := range checks {
+		if c.Checked {
+			result += c.Text + ";"
+		}
+	}
+	return result
+}
+
 func main() {
 
 	a := app.NewWithID("com.nawakarit.oneimage")
@@ -74,9 +87,51 @@ func main() {
 	displayName := widget.NewEntry()
 	displayName.SetPlaceHolder("Display Name (My App)")
 
+	typeSelect := widget.NewSelect([]string{
+		"Application",
+		"Link",
+		"Directory",
+	}, func(value string) {})
+
+	typeSelect.SetSelected("Application")
+
+	categoriesList := []string{
+		"Utility",
+		"Development",
+		"Game",
+		"Graphics",
+		"Network",
+		"Office",
+		"AudioVideo",
+		"System",
+	}
+	//categoryChecks
+	var categoryChecks []*widget.Check
+
+	selectedCategories := make(map[string]bool)
+	for _, c := range categoriesList {
+		name := c
+		check := widget.NewCheck(name, func(v bool) {
+			selectedCategories[name] = v
+		})
+		categoryChecks = append(categoryChecks, check)
+	}
+
+	//categoryChecks set default
+	if len(categoryChecks) > 0 {
+		categoryChecks[0].SetChecked(true) // Utility
+	}
+
+	var categoryObjects []fyne.CanvasObject
+
+	for _, c := range categoryChecks {
+		categoryObjects = append(categoryObjects, c)
+	}
+
 	output := widget.NewMultiLineEntry()
 	output.SetPlaceHolder("Output...")
 	output.Wrapping = fyne.TextWrapWord
+
 	scroll := container.NewScroll(output)
 	scroll.SetMinSize(fyne.NewSize(600, 300))
 
@@ -115,6 +170,8 @@ func main() {
 			AppName:     appName.Text,
 			ExecName:    execName.Text,
 			DisplayName: displayName.Text,
+			Type:        typeSelect.Selected,
+			Categories:  getCategories(categoryChecks),
 		}
 
 		script, err := generateScript(cfg)
@@ -175,22 +232,57 @@ func main() {
 		runBuild(output)
 	}
 
+	selectAllBtn := widget.NewButton("Select All", func() {
+		for _, c := range categoryChecks {
+			c.SetChecked(true)
+		}
+	})
+
+	clearBtn := widget.NewButton("Clear", func() {
+		for _, c := range categoryChecks {
+			c.SetChecked(false)
+		}
+	})
+
 	// layout
-	top := container.NewVBox(
-		widget.NewLabel("⚙️ Config"),
-		appName,
-		execName,
-		displayName,
-		container.NewHBox(generateBtn, buildBtn),
-		widget.NewLabel("📄 output"),
+
+	aa1 := container.NewGridWithColumns(2,
+
+		container.NewVBox(
+			container.NewVBox(
+				widget.NewLabel("⚙️ Config"),
+				appName,
+				execName,
+				displayName,
+			),
+
+			container.NewVBox(
+				widget.NewLabel("Type"),
+				typeSelect,
+				widget.NewLabel("Categories"),
+				container.NewVBox(categoryObjects...),
+				container.NewHBox(selectAllBtn, clearBtn),
+				container.NewHBox(generateBtn, buildBtn),
+			),
+		),
+
+		container.NewVBox(
+
+			container.NewVBox(
+				widget.NewLabel("📄 output"),
+				scroll,
+			),
+		),
 	)
 
 	w.SetContent(container.NewBorder(
-		top,    // top
-		nil,    // bottom
-		nil,    // left
-		nil,    // right
-		scroll, // center
+		aa1, // top
+		//scroll,
+		//b2, // bottom
+		nil,
+		nil, // left
+		nil, // right
+		//scroll, // center
 	))
 
 	w.Resize(fyne.NewSize(600, 500))
