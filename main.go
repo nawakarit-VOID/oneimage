@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -55,6 +56,7 @@ func runBuild(output *widget.Entry) {
 	}
 
 	output.SetText(string(out))
+
 }
 
 var isGenerated bool //
@@ -87,6 +89,8 @@ func main() {
 	displayName := widget.NewEntry()
 	displayName.SetPlaceHolder("Display Name (My App)")
 
+	status := widget.NewLabel("Ready")
+
 	typeSelect := widget.NewSelect([]string{
 		"Application",
 		"Link",
@@ -108,12 +112,9 @@ func main() {
 	//categoryChecks
 	var categoryChecks []*widget.Check
 
-	selectedCategories := make(map[string]bool)
 	for _, c := range categoriesList {
-		name := c
-		check := widget.NewCheck(name, func(v bool) {
-			selectedCategories[name] = v
-		})
+
+		check := widget.NewCheck(c, nil)
 		categoryChecks = append(categoryChecks, check)
 	}
 
@@ -128,12 +129,16 @@ func main() {
 		categoryObjects = append(categoryObjects, c)
 	}
 
+	categoryBox := container.NewVBox(categoryObjects...)
+	categoryScroll := container.NewVScroll(categoryBox)
+	categoryScroll.SetMinSize(fyne.NewSize(200, 350)) //scoll
+
 	output := widget.NewMultiLineEntry()
 	output.SetPlaceHolder("Output...")
 	output.Wrapping = fyne.TextWrapWord
 
 	scroll := container.NewScroll(output)
-	scroll.SetMinSize(fyne.NewSize(600, 300))
+	scroll.SetMinSize(fyne.NewSize(350, 600))
 
 	// buttons set
 	generateBtn := widget.NewButton("Generate Script", nil)
@@ -166,6 +171,8 @@ func main() {
 	}
 
 	generateBtn.OnTapped = func() {
+		status.SetText("⚙️ Generating script...")
+
 		cfg := BuildConfig{
 			AppName:     appName.Text,
 			ExecName:    execName.Text,
@@ -177,10 +184,12 @@ func main() {
 		script, err := generateScript(cfg)
 		if err != nil {
 			output.SetText(err.Error())
+			status.SetText("🔴 Generate failed")
 			return
 		}
 
 		output.SetText("✅ Script Generated:\n\n" + script)
+		status.SetText("✅ Script generated")
 
 		// เปิดปุ่ม build
 		isGenerated = true
@@ -226,10 +235,15 @@ func main() {
 
 	buildBtn.OnTapped = func() {
 		if !isGenerated {
+			status.SetText("❌ Please generate script first")
 			return
 		}
 
+		status.SetText("🚀 Building AppImage...")
+
 		runBuild(output)
+
+		status.SetText("✅ Build finished")
 	}
 
 	selectAllBtn := widget.NewButton("Select All", func() {
@@ -244,47 +258,57 @@ func main() {
 		}
 	})
 
-	// layout
+	// status
+	statusBar := container.NewBorder(
+		nil, nil, nil, nil,
+		container.NewPadded(status),
+	)
+	// layout/////
 
-	aa1 := container.NewGridWithColumns(2,
+	card := container.NewGridWithColumns(2,
 
+		// 🔹 LEFT PANEL
 		container.NewVBox(
-			container.NewVBox(
-				widget.NewLabel("⚙️ Config"),
-				appName,
-				execName,
-				displayName,
-			),
+			widget.NewLabel("⚙️ Config"),
+			appName,
+			execName,
+			displayName,
 
-			container.NewVBox(
-				widget.NewLabel("Type"),
-				typeSelect,
-				widget.NewLabel("Categories"),
-				container.NewVBox(categoryObjects...),
-				container.NewHBox(selectAllBtn, clearBtn),
-				container.NewHBox(generateBtn, buildBtn),
-			),
+			layout.NewSpacer(), // ดันปุ่มไปล่าง
+
+			widget.NewLabel("Type"),
+			typeSelect,
+
+			widget.NewLabel("Categories"),
+			//container.NewVBox(categoryObjects...),
+			categoryScroll,
+
+			container.NewHBox(selectAllBtn, clearBtn),
+
+			layout.NewSpacer(), // ดันปุ่มไปล่าง
+
+			container.NewHBox(generateBtn, buildBtn),
 		),
 
-		container.NewVBox(
-
-			container.NewVBox(
-				widget.NewLabel("📄 output"),
-				scroll,
-			),
+		// 🔹 RIGHT PANEL
+		container.NewBorder(
+			widget.NewLabel("📄 Output"),
+			nil,
+			nil,
+			nil,
+			scroll,
 		),
 	)
 
 	w.SetContent(container.NewBorder(
-		aa1, // top
-		//scroll,
-		//b2, // bottom
+		nil,       // top
+		statusBar, // bottom
 		nil,
-		nil, // left
-		nil, // right
-		//scroll, // center
+		nil,
+		card, // center
 	))
 
-	w.Resize(fyne.NewSize(600, 500))
+	w.Resize(fyne.NewSize(900, 600))
+	w.SetFixedSize(true)
 	w.ShowAndRun()
 }
