@@ -1,58 +1,110 @@
 #!/bin/bash
 set -e
 
+export PATH=/usr/local/go/bin:$PATH
+
 APP={{.AppName}}
 EXEC={{.ExecName}}
+OFFLINE=${OFFLINE:-0}
 
-echo "🔍 checking dependencies..."
+APPIMAGE_TOOL=appimagetool-x86_64.AppImage
+FYNE_BIN="$(go env GOPATH)/bin/fyne"
+FYNE="fyne"
 
-# ✅ check go
-command -v go >/dev/null 2>&1 || { echo "❌ Go not installed"; exit 1; }
+# ------------------------
+log() { echo -e "\n🔹 $1"; }
+fail() { echo "❌ $1"; exit 1; }
 
-# ✅ check fyne CLI
-if ! command -v fyne >/dev/null 2>&1; then
-  echo "⚠️ fyne CLI not found → installing..."
+# ------------------------
+check_go() {
+  command -v go >/dev/null 2>&1 || fail "Go not installed"
+  export PATH=$PATH:$(go env GOPATH)/bin
+}
+
+# ------------------------
+setup_fyne() {
+  if command -v fyne >/dev/null 2>&1; then
+    return
+  fi
+
+  if [ -x "$FYNE_BIN" ]; then
+    log "using fyne from GOPATH"
+    FYNE="$FYNE_BIN"
+    return
+  fi
+
+  [ "$OFFLINE" = "1" ] && fail "fyne not found (offline)"
+
+  log "installing fyne..."
   go install fyne.io/fyne/v2/cmd/fyne@latest
-fi
+}
 
-# ✅ check appimagetool
-if [ ! -f "./appimagetool-x86_64.AppImage" ]; then
-  echo "⚠️ downloading appimagetool..."
-  wget -q https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-x86_64.AppImage
-  chmod +x appimagetool-x86_64.AppImage
-fi
+# ------------------------
+setup_appimagetool() {
+  if [ -f "$APPIMAGE_TOOL" ]; then
+    return
+  fi
 
-#####################
-[ -f "icon.png" ] || { echo "❌ icon.png missing"; exit 1; }
-[ -f "main.go" ] || { echo "❌ main.go missing"; exit 1; }
-#####################
+  [ "$OFFLINE" = "1" ] && fail "appimagetool missing (offline)"
 
-echo "📦 preparing go modules..."
-go mod tidy
+  log "downloading appimagetool..."
 
-#####################
-echo "🎨 bundle icon..."
-rm -f bundled.go
-fyne bundle icon.png > bundled.go
+  if command -v wget >/dev/null 2>&1; then
+    wget -q https://github.com/AppImage/AppImageKit/releases/latest/download/$APPIMAGE_TOOL
+  else
+    curl -L -o $APPIMAGE_TOOL https://github.com/AppImage/AppImageKit/releases/latest/download/$APPIMAGE_TOOL
+  fi
 
-echo "🔨 build..."
-go build -o $EXEC
+  chmod +x $APPIMAGE_TOOL
+}
 
-echo "📦 prepare..."
-rm -rf $APP.AppDir
-mkdir -p $APP.AppDir
+# ------------------------
+check_files() {
+  [ -f "icon.png" ] || fail "icon.png missing"
+  [ -f "main.go" ] || fail "main.go missing"
+}
 
-cp $EXEC $APP.AppDir/
+# ------------------------
+prepare_modules() {
+  log "preparing modules..."
+  if [ "$OFFLINE" = "1" ]; then
+    go mod tidy -e
+  else
+    go mod tidy
+  fi
+}
 
-cat > $APP.AppDir/AppRun << 'EOF'
+# ------------------------
+bundle_icon() {
+  log "bundling icon..."
+  rm -f bundled.go
+  $FYNE bundle icon.png > bundled.go
+}
+
+# ------------------------
+build_binary() {
+  log "building..."
+  go build -ldflags="-s -w" -o $EXEC || fail "build failed"
+}
+
+# ------------------------
+prepare_appdir() {
+  log "preparing AppDir..."
+
+  rm -rf $APP.AppDir
+  mkdir -p $APP.AppDir
+
+  cp $EXEC $APP.AppDir/
+
+  cat > $APP.AppDir/AppRun << 'EOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
 exec "$HERE/{{.ExecName}}"
 EOF
 
-chmod +x $APP.AppDir/AppRun
+  chmod +x $APP.AppDir/AppRun
 
-cat > $APP.AppDir/$APP.desktop << EOF
+  cat > $APP.AppDir/$APP.desktop << EOF
 [Desktop Entry]
 Name={{.DisplayName}}
 Exec={{.ExecName}}
@@ -62,14 +114,32 @@ Categories={{.Categories}}
 Terminal=false
 EOF
 
-# icon
-cp icon.png $APP.AppDir/$EXEC.png
-cp icon.png $APP.AppDir/.DirIcon
+  cp icon.png $APP.AppDir/$EXEC.png
+  cp icon.png $APP.AppDir/.DirIcon
 
-mkdir -p $APP.AppDir/usr/share/icons/hicolor/256x256/apps
-cp icon.png $APP.AppDir/usr/share/icons/hicolor/256x256/apps/$EXEC.png
+  mkdir -p $APP.AppDir/usr/share/icons/hicolor/256x256/apps
+  cp icon.png $APP.AppDir/usr/share/icons/hicolor/256x256/apps/$EXEC.png
+}
 
-echo "🚀 pack..."
-./appimagetool-x86_64.AppImage $APP.AppDir
+# ------------------------
+pack_appimage() {
+  log "packing AppImage..."
+  "./$APPIMAGE_TOOL" $APP.AppDir
+}
 
-echo "✅ DONE"
+# ------------------------
+# MAIN FLOW
+
+log "checking dependencies..."
+check_go
+setup_fyne
+setup_appimagetool
+
+check_files
+prepare_modules
+bundle_icon
+build_binary
+prepare_appdir
+pack_appimage
+
+log "DONE ✅"
