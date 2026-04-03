@@ -26,6 +26,7 @@ func runGUI() {
 	a.SetIcon(resourceIconPng)
 	w := a.NewWindow("oneimage")
 	w.SetIcon(resourceIconPng)
+
 	// ============================================================================
 	// กล่องใส่ข้อความ + เลือก Type + เลือก Categories
 	// ============================================================================
@@ -35,10 +36,12 @@ func runGUI() {
 	execName.SetPlaceHolder("Executable Name (myapp)")
 	displayName := widget.NewEntry()
 	displayName.SetPlaceHolder("displayName Name (myapp)")
+
 	// ============================================================================
 	// Output
 	// ============================================================================
 	output := widget.NewMultiLineEntry()
+
 	// ============================================================================
 	// ปุ่ม BUILD
 	// ============================================================================
@@ -63,6 +66,24 @@ func runGUI() {
 			output.SetText("✅ Build Complete!")
 		}()
 	})
+	buildBtn.Disable()
+
+	// ============================================================================
+	// ปุ่ม เช็ค list
+	// ============================================================================
+	checkBtn := widget.NewButton("🔍 Check System", func() {
+		results, allPassed := runDoctor()
+
+		output.SetText("")
+		for _, r := range results {
+			output.SetText(output.Text + r + "\n")
+		}
+		if allPassed {
+			buildBtn.Enable()
+		} else {
+			buildBtn.Disable()
+		}
+	})
 
 	// ============================================================================
 	// layout
@@ -77,7 +98,7 @@ func runGUI() {
 	left := container.NewVBox()
 	righ := container.NewVBox()
 	bot := container.NewVBox(
-
+		checkBtn,
 		buildBtn,
 	)
 	//

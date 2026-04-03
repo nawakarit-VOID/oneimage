@@ -28,12 +28,12 @@ func runCmd(name string, args ...string) error {
 	return cmd.Run()
 }
 
-func checkFile(path string) error {
+/*func checkFile(path string) error {
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("❌ missing file: %s", path)
 	}
 	return nil
-}
+}*/
 
 func ensureFyne(offline bool) error {
 	_, err := exec.LookPath("fyne")
@@ -66,14 +66,14 @@ func ensureAppImageTool(offline bool) error {
 
 func buildApp(cfg BuildConfig) error {
 
-	logStep("checking required files...")
+	/*logStep("checking required files...")
 
 	if err := checkFile("icon.png"); err != nil {
 		return err
 	}
 	if err := checkFile("main.go"); err != nil {
 		return err
-	}
+	}*/
 
 	if err := ensureFyne(cfg.Offline); err != nil {
 		return err
