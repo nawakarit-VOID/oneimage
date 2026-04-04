@@ -1,9 +1,7 @@
 package main
 
 import (
-	"archive/zip"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,56 +30,6 @@ func runCmd(name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
-}
-
-func zipFolder(source, target string) error {
-
-	zipfile, err := os.Create(target)
-	if err != nil {
-		return err
-	}
-	defer zipfile.Close()
-
-	archive := zip.NewWriter(zipfile)
-	defer archive.Close()
-
-	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// สร้าง path ใน zip
-		relPath, err := filepath.Rel(source, path)
-		if err != nil {
-			return err
-		}
-
-		// ถ้าเป็น folder → skip (แต่ต้องมี /)
-		if info.IsDir() {
-			if relPath == "." {
-				return nil
-			}
-			_, err := archive.Create(relPath + "/")
-			return err
-		}
-
-		// เปิดไฟล์
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		// สร้าง file ใน zip
-		writer, err := archive.Create(relPath)
-		if err != nil {
-			return err
-		}
-
-		// copy data
-		_, err = io.Copy(writer, file)
-		return err
-	})
 }
 
 func buildApp(cfg BuildConfig) error {
@@ -171,18 +119,15 @@ Terminal=false
 			return err
 		}*/
 
-	copyFile(projectPath+"/"+cfg.AppName+"-x86_64.AppImage", filepath.Join(appDir, cfg.ExecName+"-x86_64.AppImage")) //ก็อป lib มาที่ .appDir
-	//-x86_64.AppImage
+	copyFile(projectPath+"/"+cfg.AppName+"-x86_64.AppImage", filepath.Join(appDir, cfg.AppName+"-x86_64.AppImage")) //ก็อป lib มาที่ .appDir
 
-	logStep("Zip")
-	err := zipFolder(appDir, appDir+cfg.AppName+".zip") //"/"
-	if err != nil {
-		fmt.Print("❌ zip fail: " + err.Error())
+	logStep("building binary...")
+	if err := runCmd("tar", "-czf", cfg.AppName+".tar.gz", cfg.AppName+".AppDir"); err != nil {
 		return err
 	}
 
-	os.Remove(projectPath + "/" + cfg.AppName)
-	os.RemoveAll(projectPath + "/" + cfg.AppName + ".AppDir")
+	//os.Remove(projectPath + "/" + cfg.AppName)
+	//os.RemoveAll(projectPath + "/" + cfg.AppName + ".AppDir")
 	os.RemoveAll(projectPath + "/" + "appimagetool-x86_64.AppImage")
 
 	logStep("DONE ✅")
