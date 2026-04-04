@@ -82,17 +82,12 @@ Terminal=false
 	os.MkdirAll(iconPath, 0755)
 	copyFile(projectPath+"/"+"icon.png", filepath.Join(iconPath, cfg.ExecName+".png"))
 
-	thisfile1 := appDir
-	dst1 := filepath.Join(projectPath, filepath.Base(thisfile1))
-	copyFile(thisfile1, dst1)
-	fmt.Print(1)
-
 	logStep("packing AppImage...")
-	thisfile2 := "appimagetool-x86_64.AppImage"
-	dst2 := filepath.Join(projectPath, filepath.Base(thisfile2))
-	copyFile(thisfile2, dst2)
+	file2 := "appimagetool-x86_64.AppImage"
+	dst2 := filepath.Join(projectPath, filepath.Base(file2))
+	copyFile(file2, dst2)
 
-	if err := copyFile(thisfile2, dst2); err != nil {
+	if err := copyFile(file2, dst2); err != nil {
 		return err
 	}
 	if err := os.Chmod(dst2, 0755); err != nil {
@@ -108,21 +103,13 @@ Terminal=false
 
 	}
 
-	/*fmt.Print(4)
-	if err := os.Chmod("appimagetool-x86_64.AppImage", 0755); err != nil {
-		fmt.Print(5)
-		return err
-	}*/
-	/*
-		if err := runCmd("./appimagetool-x86_64.AppImage", appDir+"/"); err != nil {
-			fmt.Print(6)
-			return err
-		}*/
+	copyFile(projectPath+"/"+cfg.AppName+"-x86_64.AppImage", filepath.Join(appDir, cfg.AppName+"-x86_64.AppImage")) //ก็อป .appimage มาที่ .appDir
 
-	copyFile(projectPath+"/"+cfg.AppName+"-x86_64.AppImage", filepath.Join(appDir, cfg.AppName+"-x86_64.AppImage")) //ก็อป lib มาที่ .appDir
+	tarName := cfg.AppName + ".tar.gz"
+	appImage := cfg.AppName + ".AppDir"
 
 	logStep("building binary...")
-	if err := runCmd("tar", "-czf", cfg.AppName+".tar.gz", cfg.AppName+".AppDir"); err != nil {
+	if err := runCmd("tar", "-czf", tarName, appImage); err != nil {
 		return err
 	}
 

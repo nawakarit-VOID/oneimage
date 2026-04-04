@@ -51,19 +51,55 @@ func runGUI() {
 	output := widget.NewMultiLineEntry()
 
 	// ============================================================================
+	// tyne
+	// ============================================================================
+
+	typeSelect := widget.NewSelect([]string{
+		"Application",
+	}, func(value string) {})
+
+	typeSelect.SetSelected("Application")
+
+	categoriesList := []string{
+		"Utility",
+		"Development",
+		"Game",
+		"Graphics",
+		"Network",
+		"Office",
+		"AudioVideo",
+		"System",
+	}
+	var categoryChecks []*widget.Check
+
+	for _, c := range categoriesList {
+		name := c
+		check := widget.NewCheck(name, func(bool) {})
+		categoryChecks = append(categoryChecks, check)
+	}
+
+	if len(categoryChecks) > 0 {
+		categoryChecks[0].SetChecked(true) // Utility
+	}
+
+	var categoryObjects []fyne.CanvasObject
+	for _, c := range categoryChecks {
+		categoryObjects = append(categoryObjects, c)
+	}
+
+	// ============================================================================
 	// ปุ่ม BUILD
 	// ============================================================================
 	//var buildBtn *widget.Button
 	//buildBtn.Disable()
-
 	buildBtn := widget.NewButton("Build", func() {
 
 		cfg := BuildConfig{
 			AppName:     appName.Text,
 			ExecName:    execName.Text,
 			DisplayName: displayName.Text,
-			Type:        "Application",
-			Categories:  "Utility;",
+			Type:        typeSelect.Selected,
+			Categories:  getCategories(categoryChecks),
 		}
 
 		go func() {
@@ -121,6 +157,18 @@ func runGUI() {
 		}
 	})
 
+	selectAllBtn := widget.NewButton("Select All", func() {
+		for _, c := range categoryChecks {
+			c.SetChecked(true)
+		}
+	})
+
+	clearBtn := widget.NewButton("Clear", func() {
+		for _, c := range categoryChecks {
+			c.SetChecked(false)
+		}
+	})
+
 	// ============================================================================
 	// layout
 	// ============================================================================
@@ -129,11 +177,17 @@ func runGUI() {
 		appName,
 		execName,
 		displayName,
+		widget.NewLabel("Type"),
+		typeSelect,
+		widget.NewLabel("Categories"),
+		container.NewVBox(categoryObjects...),
 	)
 
 	left := container.NewVBox()
 	righ := container.NewVBox()
 	bot := container.NewVBox(
+		selectAllBtn,
+		clearBtn,
 		selectFolderBtn,
 		checkBtn,
 		buildBtn,
