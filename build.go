@@ -34,59 +34,57 @@ func runCmd(name string, args ...string) error {
 	return cmd.Run()
 }
 
-/*func checkFile(path string) error {
-	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("❌ missing file: %s", path)
+func zipFolder(source, target string) error {
+
+	zipfile, err := os.Create(target)
+	if err != nil {
+		return err
 	}
-	return nil
-}*/
+	defer zipfile.Close()
 
-/*func ensureFyne(offline bool) error {
-	_, err := exec.LookPath("fyne")
-	if err == nil {
-		return nil
-	}
+	archive := zip.NewWriter(zipfile)
+	defer archive.Close()
 
-	if offline {
-		return errors.New("❌ fyne CLI not found (offline mode)")
-	}
+	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
-	logStep("installing fyne CLI...")
-	return runCmd("go", "install", "fyne.io/fyne/v2/cmd/fyne@latest")
-}*/
+		// สร้าง path ใน zip
+		relPath, err := filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
 
-/*func ensureAppImageTool(offline bool) error {
-	if _, err := os.Stat("appimagetool-x86_64.AppImage"); err == nil {
-		return nil
-	}
+		// ถ้าเป็น folder → skip (แต่ต้องมี /)
+		if info.IsDir() {
+			if relPath == "." {
+				return nil
+			}
+			_, err := archive.Create(relPath + "/")
+			return err
+		}
 
-	if offline {
-		return errors.New("❌ appimagetool missing (offline mode)")
-	}
+		// เปิดไฟล์
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 
-	logStep("downloading appimagetool...")
-	return runCmd("wget",
-		"https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-x86_64.AppImage",
-)
-}*/
+		// สร้าง file ใน zip
+		writer, err := archive.Create(relPath)
+		if err != nil {
+			return err
+		}
+
+		// copy data
+		_, err = io.Copy(writer, file)
+		return err
+	})
+}
 
 func buildApp(cfg BuildConfig) error {
-
-	/*logStep("checking required files...")
-
-	if err := checkFile("icon.png"); err != nil {
-		return err
-	}
-	if err := checkFile("main.go"); err != nil {
-		return err
-	}*/
-
-	/*if err := ensureFyne(cfg.Offline); err != nil {
-		return err
-	}*/
-	/*if err := ensureAppImageTool(cfg.Offline); err != nil {
-		return err
-	}*/
 
 	logStep("preparing modules...")
 	if cfg.Offline {
@@ -95,35 +93,18 @@ func buildApp(cfg BuildConfig) error {
 		runCmd("go", "mod", "tidy")
 	}
 
-	/*logStep("bundling icon...")
-	os.Remove("bundled.go")
-
-	out, err := os.Create("bundled.go")
-	if err != nil {
-		return err
-	}
-	defer out.Close()*/
-
-	/*cmd := exec.Command("fyne", "bundle", "icon.png")
-	cmd.Stdout = out
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	*/
 	logStep("building binary...")
 	if err := runCmd("go", "build", "-ldflags=-s -w", "-o", cfg.ExecName); err != nil {
 		return err
 	}
 
 	logStep("preparing AppDir...")
-	appDir := projectPath + "/" + cfg.AppName + ".AppDir"
+	appDir := projectPath + "/" + cfg.AppName + ".AppDir" //เก็บที่อยู่ ไฟล์ปลายทาง
 
-	os.RemoveAll(appDir)
-	os.MkdirAll(appDir, 0755)
+	os.RemoveAll(appDir)      //ลบแฟ้มที่เหมือนกันออก
+	os.MkdirAll(appDir, 0755) //สร้างแฟ้มใหม่
 
-	copyFile(cfg.ExecName, filepath.Join(appDir, cfg.ExecName))
+	copyFile(cfg.ExecName, filepath.Join(appDir, cfg.ExecName)) //
 
 	// AppRun
 	appRun := fmt.Sprintf(`#!/bin/bash
@@ -153,37 +134,27 @@ Terminal=false
 	os.MkdirAll(iconPath, 0755)
 	copyFile(projectPath+"/"+"icon.png", filepath.Join(iconPath, cfg.ExecName+".png"))
 
-	//copyFile(appDir, filepath.Join(projectPath+"/"))
-
-	src2 := appDir
-	dst2 := filepath.Join(projectPath, filepath.Base(src2))
-
+	thisfile1 := appDir
+	dst1 := filepath.Join(projectPath, filepath.Base(thisfile1))
+	copyFile(thisfile1, dst1)
 	fmt.Print(1)
-	copyFile(src2, dst2)
-
-	//os.Remove(cfg.AppName + ".AppImage")
 
 	logStep("packing AppImage...")
-	src := "appimagetool-x86_64.AppImage"
-	dst := filepath.Join(projectPath, filepath.Base(src))
+	thisfile2 := "appimagetool-x86_64.AppImage"
+	dst2 := filepath.Join(projectPath, filepath.Base(thisfile2))
+	copyFile(thisfile2, dst2)
 
-	fmt.Print(1)
-	copyFile(src, dst)
-	fmt.Print(2)
-	if err := copyFile(src, dst); err != nil {
+	if err := copyFile(thisfile2, dst2); err != nil {
 		return err
-
 	}
-	fmt.Print(3)
-	if err := os.Chmod(dst, 0755); err != nil {
+	if err := os.Chmod(dst2, 0755); err != nil {
 		return err
-
 	}
 
-	copyFile(projectPath+"/"+cfg.AppName, filepath.Join(appDir, cfg.ExecName)) ///
+	copyFile(projectPath+"/"+cfg.AppName, filepath.Join(appDir, cfg.ExecName)) //ก็อป lib มาที่ .appDir
 
 	fmt.Print(3)
-	if err := runCmd(dst, appDir+"/"); err != nil {
+	if err := runCmd(dst2, appDir+"/"); err != nil {
 		fmt.Print(7)
 		return err
 
@@ -200,25 +171,20 @@ Terminal=false
 			return err
 		}*/
 
-	//os.Remove(cfg.AppName + ".AppImage")
-	//os.RemoveAll(cfg.AppName + ".AppDir")
-	//os.Rename(cfg.AppName+".AppImage.zip", projectPath+"/myapp.zip")
+	copyFile(projectPath+"/"+cfg.AppName+"-x86_64.AppImage", filepath.Join(appDir, cfg.ExecName+"-x86_64.AppImage")) //ก็อป lib มาที่ .appDir
+	//-x86_64.AppImage
+
+	logStep("Zip")
+	err := zipFolder(appDir, appDir+cfg.AppName+".zip") //"/"
+	if err != nil {
+		fmt.Print("❌ zip fail: " + err.Error())
+		return err
+	}
+
+	os.Remove(projectPath + "/" + cfg.AppName)
+	os.RemoveAll(projectPath + "/" + cfg.AppName + ".AppDir")
+	os.RemoveAll(projectPath + "/" + "appimagetool-x86_64.AppImage")
 
 	logStep("DONE ✅")
 	return nil
-}
-
-func zipFile(src, dst string) error {
-	zipfile, _ := os.Create(dst)
-	defer zipfile.Close()
-
-	archive := zip.NewWriter(zipfile)
-	defer archive.Close()
-
-	file, _ := os.Open(src)
-	defer file.Close()
-
-	w, _ := archive.Create(filepath.Base(src))
-	_, err := io.Copy(w, file)
-	return err
 }
