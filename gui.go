@@ -1,9 +1,12 @@
 package main
 
 import (
+	_ "embed"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -18,14 +21,19 @@ func getCategories(checks []*widget.Check) string {
 	return result
 }
 
+//go:embed icon.png
+var iconData []byte
+
 func runGUI() {
 	// ============================================================================
 	// App
 	// ============================================================================
+
 	a := app.NewWithID("com.nawakarit.oneimage")
-	a.SetIcon(resourceIconPng)
+	icon := fyne.NewStaticResource("icon.png", iconData)
+	a.SetIcon(icon)
 	w := a.NewWindow("oneimage")
-	w.SetIcon(resourceIconPng)
+	w.SetIcon(icon)
 
 	// ============================================================================
 	// กล่องใส่ข้อความ + เลือก Type + เลือก Categories
@@ -45,6 +53,9 @@ func runGUI() {
 	// ============================================================================
 	// ปุ่ม BUILD
 	// ============================================================================
+	//var buildBtn *widget.Button
+	//buildBtn.Disable()
+
 	buildBtn := widget.NewButton("Build", func() {
 
 		cfg := BuildConfig{
@@ -58,26 +69,51 @@ func runGUI() {
 		go func() {
 			err := buildApp(cfg)
 
-			if err != nil {
-				output.SetText("❌ " + err.Error())
+			fyne.Do(func() {
+				if err != nil {
+					output.SetText("❌ " + err.Error())
+					return
+				}
+				output.SetText("✅ Build Complete!")
+			})
+		}()
+	})
+
+	// ============================================================================
+	// เลือกแฟ้ม
+	// ============================================================================
+
+	selectFolderBtn := widget.NewButton("📂 Select Project", func() {
+
+		dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+			if uri == nil {
 				return
 			}
 
-			output.SetText("✅ Build Complete!")
-		}()
+			projectPath = uri.Path()
+			output.SetText("📂 Selected: " + projectPath)
+
+		}, w).Show()
+
 	})
-	buildBtn.Disable()
 
 	// ============================================================================
 	// ปุ่ม เช็ค list
 	// ============================================================================
 	checkBtn := widget.NewButton("🔍 Check System", func() {
-		results, allPassed := runDoctor()
+
+		if projectPath == "" {
+			output.SetText("❌ กรุณาเลือกโฟลเดอร์ก่อน")
+			return
+		}
+
+		results, allPassed := runDoctor(projectPath)
 
 		output.SetText("")
 		for _, r := range results {
 			output.SetText(output.Text + r + "\n")
 		}
+
 		if allPassed {
 			buildBtn.Enable()
 		} else {
@@ -98,6 +134,7 @@ func runGUI() {
 	left := container.NewVBox()
 	righ := container.NewVBox()
 	bot := container.NewVBox(
+		selectFolderBtn,
 		checkBtn,
 		buildBtn,
 	)

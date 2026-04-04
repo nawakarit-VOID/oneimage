@@ -26,7 +26,7 @@ func runCLI() {
 		}
 
 	case "doctor":
-		runDoctor()
+		//		runDoctor()
 
 	case "init":
 		runInit()

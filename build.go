@@ -1,8 +1,9 @@
 package main
 
 import (
-	"errors"
+	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,8 +22,13 @@ func logStep(msg string) {
 	fmt.Println("🔹", msg)
 }
 
+var projectPath string
+
 func runCmd(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
+	cmd.Env = append(os.Environ(), "ARCH=x86_64")
+	cmd.Dir = projectPath //
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -35,7 +41,7 @@ func runCmd(name string, args ...string) error {
 	return nil
 }*/
 
-func ensureFyne(offline bool) error {
+/*func ensureFyne(offline bool) error {
 	_, err := exec.LookPath("fyne")
 	if err == nil {
 		return nil
@@ -47,9 +53,9 @@ func ensureFyne(offline bool) error {
 
 	logStep("installing fyne CLI...")
 	return runCmd("go", "install", "fyne.io/fyne/v2/cmd/fyne@latest")
-}
+}*/
 
-func ensureAppImageTool(offline bool) error {
+/*func ensureAppImageTool(offline bool) error {
 	if _, err := os.Stat("appimagetool-x86_64.AppImage"); err == nil {
 		return nil
 	}
@@ -61,8 +67,8 @@ func ensureAppImageTool(offline bool) error {
 	logStep("downloading appimagetool...")
 	return runCmd("wget",
 		"https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-x86_64.AppImage",
-	)
-}
+)
+}*/
 
 func buildApp(cfg BuildConfig) error {
 
@@ -75,12 +81,12 @@ func buildApp(cfg BuildConfig) error {
 		return err
 	}*/
 
-	if err := ensureFyne(cfg.Offline); err != nil {
+	/*if err := ensureFyne(cfg.Offline); err != nil {
 		return err
-	}
-	if err := ensureAppImageTool(cfg.Offline); err != nil {
+	}*/
+	/*if err := ensureAppImageTool(cfg.Offline); err != nil {
 		return err
-	}
+	}*/
 
 	logStep("preparing modules...")
 	if cfg.Offline {
@@ -89,30 +95,30 @@ func buildApp(cfg BuildConfig) error {
 		runCmd("go", "mod", "tidy")
 	}
 
-	logStep("bundling icon...")
+	/*logStep("bundling icon...")
 	os.Remove("bundled.go")
 
 	out, err := os.Create("bundled.go")
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer out.Close()*/
 
-	cmd := exec.Command("fyne", "bundle", "icon.png")
+	/*cmd := exec.Command("fyne", "bundle", "icon.png")
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-
+	*/
 	logStep("building binary...")
 	if err := runCmd("go", "build", "-ldflags=-s -w", "-o", cfg.ExecName); err != nil {
 		return err
 	}
 
 	logStep("preparing AppDir...")
-	appDir := cfg.AppName + ".AppDir"
+	appDir := projectPath + "/" + cfg.AppName + ".AppDir"
 
 	os.RemoveAll(appDir)
 	os.MkdirAll(appDir, 0755)
@@ -140,23 +146,79 @@ Terminal=false
 	os.WriteFile(filepath.Join(appDir, cfg.AppName+".desktop"), []byte(desktop), 0644)
 
 	// Icons
-	copyFile("icon.png", filepath.Join(appDir, cfg.ExecName+".png"))
-	copyFile("icon.png", filepath.Join(appDir, ".DirIcon"))
+	copyFile(projectPath+"/"+"icon.png", filepath.Join(appDir, cfg.ExecName+".png"))
+	copyFile(projectPath+"/"+"icon.png", filepath.Join(appDir, ".DirIcon"))
 
 	iconPath := filepath.Join(appDir, "usr/share/icons/hicolor/256x256/apps")
 	os.MkdirAll(iconPath, 0755)
-	copyFile("icon.png", filepath.Join(iconPath, cfg.ExecName+".png"))
+	copyFile(projectPath+"/"+"icon.png", filepath.Join(iconPath, cfg.ExecName+".png"))
+
+	//copyFile(appDir, filepath.Join(projectPath+"/"))
+
+	src2 := appDir
+	dst2 := filepath.Join(projectPath, filepath.Base(src2))
+
+	fmt.Print(1)
+	copyFile(src2, dst2)
+
+	//os.Remove(cfg.AppName + ".AppImage")
 
 	logStep("packing AppImage...")
+	src := "appimagetool-x86_64.AppImage"
+	dst := filepath.Join(projectPath, filepath.Base(src))
 
+	fmt.Print(1)
+	copyFile(src, dst)
+	fmt.Print(2)
+	if err := copyFile(src, dst); err != nil {
+		return err
+
+	}
+	fmt.Print(3)
+	if err := os.Chmod(dst, 0755); err != nil {
+		return err
+
+	}
+
+	copyFile(projectPath+"/"+cfg.AppName, filepath.Join(appDir, cfg.ExecName)) ///
+
+	fmt.Print(3)
+	if err := runCmd(dst, appDir+"/"); err != nil {
+		fmt.Print(7)
+		return err
+
+	}
+
+	/*fmt.Print(4)
 	if err := os.Chmod("appimagetool-x86_64.AppImage", 0755); err != nil {
+		fmt.Print(5)
 		return err
-	}
+	}*/
+	/*
+		if err := runCmd("./appimagetool-x86_64.AppImage", appDir+"/"); err != nil {
+			fmt.Print(6)
+			return err
+		}*/
 
-	if err := runCmd("./appimagetool-x86_64.AppImage", appDir); err != nil {
-		return err
-	}
+	//os.Remove(cfg.AppName + ".AppImage")
+	//os.RemoveAll(cfg.AppName + ".AppDir")
+	//os.Rename(cfg.AppName+".AppImage.zip", projectPath+"/myapp.zip")
 
 	logStep("DONE ✅")
 	return nil
+}
+
+func zipFile(src, dst string) error {
+	zipfile, _ := os.Create(dst)
+	defer zipfile.Close()
+
+	archive := zip.NewWriter(zipfile)
+	defer archive.Close()
+
+	file, _ := os.Open(src)
+	defer file.Close()
+
+	w, _ := archive.Create(filepath.Base(src))
+	_, err := io.Copy(w, file)
+	return err
 }

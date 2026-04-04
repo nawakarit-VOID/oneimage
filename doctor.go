@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func checkCmd(name string) bool {
@@ -10,49 +11,36 @@ func checkCmd(name string) bool {
 	return err == nil
 }
 
-func checkFile(path string) bool {
+func checkFile(base, name string) bool {
+	path := filepath.Join(base, name)
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-func runDoctor() ([]string, bool) {
+func runDoctor(base string) ([]string, bool) {
 	var result []string
-	allPassed := true
+	ok := true
 
-	if checkCmd("go") {
-		result = append(result, "✅ Go installed")
-	} else {
-		result = append(result, "❌ Go missing")
-		allPassed = false
+	files := []string{
+		"main.go",
+		"icon.png",
+		"go.mod",
+		"go.sum",
 	}
 
-	if checkCmd("fyne") {
-		result = append(result, "✅ fyne installed")
-	} else {
-		result = append(result, "❌ fyne missing")
-		allPassed = false
+	for _, f := range files {
+		if checkFile(base, f) {
+			result = append(result, "✅ "+f)
+		} else {
+			result = append(result, "❌ "+f+" missing")
+			ok = false
+		}
+
+		if ok {
+			result = append(result, "✅ All checks passed")
+		}
+
 	}
 
-	if checkFile("icon.png") {
-		result = append(result, "✅ icon.png found")
-	} else {
-		result = append(result, "❌ icon.png missing")
-		allPassed = false
-	}
-
-	if checkFile("main.go") {
-		result = append(result, "✅ main.go found")
-	} else {
-		result = append(result, "❌ main.go missing")
-		allPassed = false
-	}
-
-	if checkFile("appimagetool-x86_64.AppImage") {
-		result = append(result, "✅ appimagetool found")
-	} else {
-		result = append(result, "❌ appimagetool missing")
-		allPassed = false
-	}
-
-	return result, allPassed
+	return result, ok
 }
