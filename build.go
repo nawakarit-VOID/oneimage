@@ -115,7 +115,7 @@ Terminal=false
 
 	//os.Remove(projectPath + "/" + cfg.AppName)
 	//os.RemoveAll(projectPath + "/" + cfg.AppName + ".AppDir")
-	os.RemoveAll(projectPath + "/" + "appimagetool-x86_64.AppImage")
+	//os.RemoveAll(projectPath + "/" + "appimagetool-x86_64.AppImage")
 
 	logStep("DONE ✅")
 	return nil
