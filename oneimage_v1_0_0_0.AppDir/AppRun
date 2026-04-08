@@ -1,3 +1,0 @@
-#!/bin/bash
-HERE="$(dirname "$(readlink -f "$0")")"
-exec "$HERE/oneimage_v1_0_0_0"
