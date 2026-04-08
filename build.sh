@@ -2,8 +2,8 @@
 set -e
 export PATH=/usr/local/go/bin:$PATH
 
-APP=1
-EXEC=1
+APP=oneimage
+EXEC=oneimage
 
 echo "🔍 Checking..."
 
@@ -30,18 +30,18 @@ cp $EXEC $APP.AppDir/
 cat > $APP.AppDir/AppRun << 'EOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
-exec "$HERE/1"
+exec "$HERE/oneimage"
 EOF
 
 chmod +x $APP.AppDir/AppRun
 
 cat > $APP.AppDir/$APP.desktop << EOF
 [Desktop Entry]
-Name=1
-Exec=1
-Icon=1
+Name=oneimage
+Exec=oneimage
+Icon=oneimage
 Type=Application
-Categories=Utility;Development;
+Categories=Utility;
 Terminal=false
 EOF
 
