@@ -166,7 +166,11 @@ func main() {
 	displayName.SetPlaceHolder("Display Name (My App)")
 
 	categories := widget.NewEntry()
-	categories.SetPlaceHolder("Utility;Development;")
+	categories.SetText("Utility;")
+
+	catmenu := widget.NewMultiLineEntry()
+	catmenu.SetText("ประเภทโปรแกรม Utility;Development;Game;Graphics;Network;Office;AudioVideo;System;")
+	//catmenu.Disable()
 
 	projectPath := ""
 
@@ -249,6 +253,7 @@ func main() {
 		execName,
 		displayName,
 		categories,
+		catmenu,
 
 		selectBtn,
 
