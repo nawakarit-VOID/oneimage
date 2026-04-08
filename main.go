@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -142,10 +143,17 @@ func runScript(projectPath string, output *widget.Entry) {
 	output.SetText("❌ no terminal found")
 }
 
+//go:embed icon.png
+var iconData []byte
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 func main() {
 
-	a := app.New()
+	a := app.NewWithID("com.nawakarit.oneimage")
+	icon := fyne.NewStaticResource("icon.png", iconData)
+	a.SetIcon(icon)
 	w := a.NewWindow("oneimage")
+	w.SetIcon(icon)
 
 	// 🔹 input
 	appName := widget.NewEntry()
