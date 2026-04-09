@@ -143,14 +143,14 @@ func runScript(projectPath string, output *widget.Entry) {
 	output.SetText("❌ no terminal found")
 }
 
-//go:embed icon.png
+//go:embed icons/icon-64.png
 var iconData []byte
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 func main() {
 
 	a := app.NewWithID("com.nawakarit.oneimage")
-	icon := fyne.NewStaticResource("icon.png", iconData)
+	icon := fyne.NewStaticResource("icon-64.png", iconData)
 	a.SetIcon(icon)
 	w := a.NewWindow("oneimage")
 	w.SetIcon(icon)
