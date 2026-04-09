@@ -253,7 +253,17 @@ func main() {
 	categories.SetText("Utility;")
 
 	catmenu := widget.NewMultiLineEntry()
-	catmenu.SetText("ประเภทโปรแกรม\nUtility; = ยูทิลิตี้ (ทั่วไป)\nDevelopment; = การพัฒนา\nGame; = เกม\nGraphics; = กราฟิก\nNetwork; = เครือข่าย\nOffice; = สำนักงาน\nAudio; = เสียง\nVideo; = วิดีโอ\nSystem; = ระบบ")
+	catmenu.SetText(`ประเภทโปรแกรม
+	Utility; = ยูทิลิตี้ (ทั่วไป)
+	Development; = การพัฒนา
+	Game; = เกม
+	Graphics; = กราฟิก
+	Network; = เครือข่าย
+	Office; = สำนักงาน
+	Audio; = เสียง
+	Video; = วิดีโอ
+	System; = ระบบ`)
+
 	catmenu.SetMinRowsVisible(10)
 	//catmenu.Disable()
 
@@ -374,14 +384,140 @@ func main() {
 
 		output.SetText("🚀 Build started in terminal...")
 	})
+	// ============================================================================
+	// ปุ่มรายละเอียด ฟังชั้น icons
+	// ============================================================================
+	btnuseicons := widget.NewButton("!", func() {
+		useicons := widget.NewMultiLineEntry()
+		useicons.SetText(`
+// โหลด icon
+func loadIcon(size int) fyne.Resource {
+	var file string
+
+	switch {
+	case size >= 512:
+		file = "icons/icon-512.png" ///ที่อยู่
+	case size >= 256:
+		file = "icons/icon-256.png"
+	case size >= 128:
+		file = "icons/icon-128.png"
+	default:
+		file = "icons/icon-64.png"
+	}
+
+	data, _ := iconFS.ReadFile(file)
+	return fyne.NewStaticResource(file, data)
+}
+
+//go:embed icons/*
+var iconFS embed.FS
+
+
+---icon := loadIcon(64) //เอา data มาใช้
+
+`)
+		//useicons.Disable() // ทำให้แก้ไม่ได้ แต่ยัง select/copy ได้
+		d := dialog.NewCustom(
+			"ฟังชั้นเรียก icon มาใช้",
+			"ปิด",
+			useicons,
+			w,
+		)
+		d.Resize(fyne.NewSize(500, 500)) // กว้าง 500 สูง 300
+		d.Show()
+	})
+
+	// ============================================================================
+	// ปุ่ม howto
+	// ============================================================================
+	btnhowto := widget.NewButton("#", func() {
+		howto := widget.NewMultiLineEntry()
+		howto.SetText(`oneimage
+-ใช้สำหรับทำ .image (ไฟล์เดียว) 
+-oneimage จำเป็นต้องมี ไฟล์ appimagetool-x86_64.AppImage อยู่ข้างๆเสมอ
+-สามารถเอาตัว appimage version ที่ใหม่กว่ามาแทนได้เลย *แต่ชื่อต้องอ้างอิงด้านบน
+
+**Go
+**ใช้ได้กับภาษา Go
+**Golang 
+**fyne (gui)
+**
+
+เครื่องที่ใช้จะต้องมี 
+-ภาษา go (golang) (ในเครื่อง)
+-ImageMagick
+-และอื่นๆที่ไฟล์ go.mod ต้องใช้งาน
+
+แฟ้ม oneimage/
+  ├── appimagetool-x86_64.AppImage (*ใช้รุ่นใหม่กว่าได้)
+  └── oneimage_v1_0_0_0-x86_64.AppImage (ใช้งาน gui)
+
+แฟ้ม**โปรเจคเป้าหมาย/
+  ├── icon.png (ตั้งชื่อว่า icon.png) (Master*)
+  ├── main.go
+  ├── go.mod
+  └── go.sum
+
+การใช้งาน
+**icon เป็นฟังชั้นเสริม**
+1. ใ้ส่ชื่อ app ,exec ,Display (โดยส่วนมาก ใช้ชื่อเดีนวกันหมด)
+2. ช่อง categories ก็มีให้เลือกตามข้อความ ด้านล่างช่องกรอก ปิดท้ายด้วย ; เสมอ เช่น x; , x;x; , x;x;x;
+3. เลือกแฟ้มโปรเจค (ระบบจะก็อปไฟล์ appimagetool-x86_64.AppImage ไปวางในแฟ้มโปรเจค)
+4. Generate script (จะมีไฟล์ Build.sh ขึ้นที่แฟ้มโปรเจค)
+5. Run build`)
+		//howto.Disable() // ทำให้แก้ไม่ได้ แต่ยัง select/copy ได้
+		d := dialog.NewCustom(
+			"howto",
+			"ปิด",
+			howto,
+			w,
+		)
+		d.Resize(fyne.NewSize(600, 600)) // กว้าง 500 สูง 300
+		d.Show()
+	})
+
+	// ============================================================================
+	// ปุ่ม howto
+	// ============================================================================
+	btnlic := widget.NewButton("@", func() {
+		LICENSE := widget.NewMultiLineEntry()
+		LICENSE.SetText(`
+Copyright (c) [2026] [nawakarit] [เจช์ (วัดดงหมี)] (https://github.com/nawakarit-VOID)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files... 
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND...
+
+***************
+
+ลิขสิทธิ์ (c) [2026] [nawakarit] [เจช์ (วัดดงหมี)] (https://github.com/nawakarit-VOID)
+
+ขออนุญาตให้บุคคลใดก็ตามที่ได้รับสำเนาซอฟต์แวร์นี้และเอกสารประกอบที่เกี่ยวข้อง สามารถดาวน์โหลดไปใช้ได้โดยไม่มีค่าใช้จ่าย...
+
+ข้อความแจ้งลิขสิทธิ์และข้อความแจ้งอนุญาตข้างต้นจะต้องรวมอยู่ในสำเนาทั้งหมดหรือส่วนสำคัญของซอฟต์แวร์
+
+ซอฟต์แวร์นี้จัดให้ "ตามสภาพที่เป็นอยู่" โดยไม่มีการรับประกันใดๆ ทั้งสิ้น...
+`)
+		//howto.Disable() // ทำให้แก้ไม่ได้ แต่ยัง select/copy ได้
+		d := dialog.NewCustom(
+			"LICENSE",
+			"ปิด",
+			LICENSE,
+			w,
+		)
+		d.Resize(fyne.NewSize(600, 600)) // กว้าง 500 สูง 300
+		d.Show()
+	})
 
 	// ============================================================================
 	// layout
 	// ============================================================================
 	// 🔹 layout
+
 	w.SetContent(container.NewVBox(
 		widget.NewLabel("⚙️ Config"),
-
 		appName,
 		execName,
 		displayName,
@@ -390,7 +526,7 @@ func main() {
 
 		selectBtn,
 
-		container.NewHBox(generateBtnIcon, runBtnIcons, widget.NewLabel("!! เอาไอคอน master มาวางที่แฟ้มงานก่อน")),
+		container.NewHBox(generateBtnIcon, runBtnIcons, widget.NewLabel("!! เอาไอคอน master มาวางที่แฟ้มงานก่อน"), btnuseicons, btnhowto, btnlic),
 
 		container.NewHBox(generateBtnBuild, buildBtn),
 
