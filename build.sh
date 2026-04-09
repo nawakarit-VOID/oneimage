@@ -13,15 +13,15 @@ echo "ตรวจเช็คไฟล์"
 sleep 1
 [ -f "icon.png" ] || { echo "❌ icon.png missing"; exit 1; }
 [ -f "main.go" ] || { echo "❌ main.go missing"; exit 1; }
-[ -f "go.mod" ] || { echo "❌ main.go missing"; exit 1; }
-[ -f "go.sum" ] || { echo "❌ main.go missing"; exit 1; }
+[ -f "go.mod" ] || { echo "❌ go.mod missing"; exit 1; }
+[ -f "go.sum" ] || { echo "❌ go.sum, missing"; exit 1; }
 
-echo "🔨 build..."
+echo "🔨 ใจเย็นๆ..."
 sleep 1
 go mod tidy
 go build -ldflags="-s -w" -o $EXEC
 
-echo "📦 prepare...AppDir..."
+echo "📦 รวมเอกสาร...AppDir..."
 sleep 1
 rm -rf $APP.AppDir
 mkdir -p $APP.AppDir
@@ -41,7 +41,7 @@ Name=oneimage
 Exec=oneimage
 Icon=oneimage
 Type=Application
-Categories=Utility;
+Categories=Utility;Development;
 Terminal=false
 EOF
 
@@ -53,11 +53,11 @@ echo "🚀 pack..."
 sleep 2
 cp $APP-x86_64.AppImage $APP.AppDir/$APP-x86_64.AppImage 
 
-echo "📦 tar..."
+echo "📦 บีบอัด..tar..."
 tar -czf $APP.tar.gz $APP.AppDir
 sleep 2
 
-echo "🧹 cleanup..."
+echo "🧹 ลบ .AppDir..."
 rm -rf $APP.AppDir
 
-echo "✅ DONE"
+echo "✅ เสร็จแล้ว"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	_ "embed"
 	"os"
 	"os/exec"
@@ -15,7 +16,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// 🔥 TEMPLATE (ฝังใน Go เลย)
+// TEMPLATE (ฝังใน)
 const buildTemplate = `#!/bin/bash
 set -e
 export PATH=/usr/local/go/bin:$PATH
@@ -31,15 +32,15 @@ echo "ตรวจเช็คไฟล์"
 sleep 1
 [ -f "icon.png" ] || { echo "❌ icon.png missing"; exit 1; }
 [ -f "main.go" ] || { echo "❌ main.go missing"; exit 1; }
-[ -f "go.mod" ] || { echo "❌ main.go missing"; exit 1; }
-[ -f "go.sum" ] || { echo "❌ main.go missing"; exit 1; }
+[ -f "go.mod" ] || { echo "❌ go.mod missing"; exit 1; }
+[ -f "go.sum" ] || { echo "❌ go.sum, missing"; exit 1; }
 
-echo "🔨 build..."
+echo "🔨 ใจเย็นๆ..."
 sleep 1
 go mod tidy
 go build -ldflags="-s -w" -o $EXEC
 
-echo "📦 prepare...AppDir..."
+echo "📦 รวมเอกสาร...AppDir..."
 sleep 1
 rm -rf $APP.AppDir
 mkdir -p $APP.AppDir
@@ -71,14 +72,34 @@ echo "🚀 pack..."
 sleep 2
 cp $APP-x86_64.AppImage $APP.AppDir/$APP-x86_64.AppImage 
 
-echo "📦 tar..."
+echo "📦 บีบอัด..tar..."
 tar -czf $APP.tar.gz $APP.AppDir
 sleep 2
 
-echo "🧹 cleanup..."
+echo "🧹 ลบ .AppDir..."
 rm -rf $APP.AppDir
 
-echo "✅ DONE"
+echo "✅ เสร็จแล้ว"
+`
+
+const iconsTemplate = `#!/bin/bash
+set -e
+export PATH=/usr/local/go/bin:$PATH
+
+INPUT="icon.png"
+OUTDIR="icons"
+
+mkdir -p $OUTDIR
+
+SIZES=(512 256 128 64)
+
+for SIZE in "${SIZES[@]}"; do
+  convert "$INPUT" \
+    -resize ${SIZE}x${SIZE} \
+    "$OUTDIR/icon-${SIZE}.png"
+done
+
+echo "✅ เสร็จแล้ว!"
 `
 
 type BuildConfig struct {
@@ -105,8 +126,52 @@ func copyAppImageTool(projectPath string) error {
 	return os.WriteFile(dst, data, 0755)
 }
 
-// 🔥 generate build.sh
-func generateScript(projectPath string, cfg BuildConfig) error {
+// ============================================================================
+// Icons gen+run
+// ============================================================================
+// generate icons.sh
+func generateScripticons(projectPath string, cfg BuildConfig) error {
+	tmpl, err := template.New("icons").Parse(iconsTemplate)
+	if err != nil {
+		return err
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, cfg); err != nil {
+		return err
+	}
+
+	scriptPath := filepath.Join(projectPath, "icons.sh")
+	return os.WriteFile(scriptPath, out.Bytes(), 0755)
+}
+
+// run icons.sh
+func runScripticons(projectPath string, output *widget.Entry) {
+
+	commands := [][]string{
+		{"gnome-terminal", "--", "bash", "-c", "cd '" + projectPath + "' && ./icons.sh; exec bash"},
+		{"x-terminal-emulator", "-e", "bash", "-c", "cd '" + projectPath + "' && ./icons.sh; exec bash"},
+		{"konsole", "-e", "bash", "-c", "cd '" + projectPath + "' && ./icons.sh; exec bash"},
+		{"xfce4-terminal", "-e", "bash", "-c", "cd '" + projectPath + "' && ./icons.sh; exec bash"},
+	}
+
+	for _, c := range commands {
+		cmd := exec.Command(c[0], c[1:]...)
+		err := cmd.Start()
+		if err == nil {
+			output.SetText("🚀 opened terminal: " + c[0])
+			return
+		}
+	}
+
+	output.SetText("❌ no terminal found")
+}
+
+// ============================================================================
+// build gen+run
+// ============================================================================
+// generate build.sh
+func generateScriptbuild(projectPath string, cfg BuildConfig) error {
 	tmpl, err := template.New("build").Parse(buildTemplate)
 	if err != nil {
 		return err
@@ -122,7 +187,7 @@ func generateScript(projectPath string, cfg BuildConfig) error {
 }
 
 // 🔥 run build.sh
-func runScript(projectPath string, output *widget.Entry) {
+func runScriptbuild(projectPath string, output *widget.Entry) {
 
 	commands := [][]string{
 		{"gnome-terminal", "--", "bash", "-c", "cd '" + projectPath + "' && ./build.sh; exec bash"},
@@ -143,14 +208,33 @@ func runScript(projectPath string, output *widget.Entry) {
 	output.SetText("❌ no terminal found")
 }
 
-//go:embed icons/icon-64.png
-var iconData []byte
+// โหลด icon
+func loadIcon(size int) fyne.Resource {
+	var file string
+
+	switch {
+	case size >= 512:
+		file = "icons/icon-512.png" ///ที่อยู่
+	case size >= 256:
+		file = "icons/icon-256.png"
+	case size >= 128:
+		file = "icons/icon-128.png"
+	default:
+		file = "icons/icon-64.png"
+	}
+
+	data, _ := iconFS.ReadFile(file)
+	return fyne.NewStaticResource(file, data)
+}
+
+//go:embed icons/*
+var iconFS embed.FS
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 func main() {
 
 	a := app.NewWithID("com.nawakarit.oneimage")
-	icon := fyne.NewStaticResource("icon-64.png", iconData)
+	icon := loadIcon(64) //เอา data มาใช้
 	a.SetIcon(icon)
 	w := a.NewWindow("oneimage")
 	w.SetIcon(icon)
@@ -169,7 +253,8 @@ func main() {
 	categories.SetText("Utility;")
 
 	catmenu := widget.NewMultiLineEntry()
-	catmenu.SetText("ประเภทโปรแกรม Utility;Development;Game;Graphics;Network;Office;AudioVideo;System;")
+	catmenu.SetText("ประเภทโปรแกรม\nUtility; = ยูทิลิตี้ (ทั่วไป)\nDevelopment; = การพัฒนา\nGame; = เกม\nGraphics; = กราฟิก\nNetwork; = เครือข่าย\nOffice; = สำนักงาน\nAudio; = เสียง\nVideo; = วิดีโอ\nSystem; = ระบบ")
+	catmenu.SetMinRowsVisible(10)
 	//catmenu.Disable()
 
 	projectPath := ""
@@ -180,7 +265,7 @@ func main() {
 	output.SetPlaceHolder("Output...")
 
 	scroll := container.NewScroll(output)
-	scroll.SetMinSize(fyne.NewSize(500, 300))
+	scroll.SetMinSize(fyne.NewSize(600, 100))
 
 	// 🔹 เลือก folder
 	selectBtn := widget.NewButton("Select Project Folder", func() {
@@ -199,8 +284,11 @@ func main() {
 		}, w)
 	})
 
+	// ============================================================================
+	// ปุ่ม genIcon+run
+	// ============================================================================
 	// 🔹 generate script
-	generateBtn := widget.NewButton("Generate Script", func() {
+	generateBtnIcon := widget.NewButton("Generate Script icons", func() {
 
 		if projectPath == "" {
 			output.SetText("❌ Please select project folder")
@@ -214,7 +302,49 @@ func main() {
 			Categories:  categories.Text,
 		}
 
-		err := generateScript(projectPath, cfg)
+		err := generateScripticons(projectPath, cfg)
+		if err != nil {
+			output.SetText(err.Error())
+			return
+		}
+
+		output.SetText("✅ icons.sh created at:\n" + projectPath)
+
+	})
+
+	// 🔹 run icon scrip
+	runBtnIcons := widget.NewButton("Build icons", func() {
+
+		if projectPath == "" {
+			output.SetText("❌ select folder first")
+			return
+		}
+
+		//  run script
+		go runScripticons(projectPath, output)
+
+		output.SetText("🚀 Build started in terminal...")
+	})
+
+	// ============================================================================
+	// ปุ่ม build+run
+	// ============================================================================
+	// 🔹 generate script
+	generateBtnBuild := widget.NewButton("Generate Script Build", func() {
+
+		if projectPath == "" {
+			output.SetText("❌ Please select project folder")
+			return
+		}
+
+		cfg := BuildConfig{
+			AppName:     appName.Text,
+			ExecName:    execName.Text,
+			DisplayName: displayName.Text,
+			Categories:  categories.Text,
+		}
+
+		err := generateScriptbuild(projectPath, cfg)
 		if err != nil {
 			output.SetText(err.Error())
 			return
@@ -240,11 +370,14 @@ func main() {
 		}
 
 		//  run script
-		go runScript(projectPath, output)
+		go runScriptbuild(projectPath, output)
 
 		output.SetText("🚀 Build started in terminal...")
 	})
 
+	// ============================================================================
+	// layout
+	// ============================================================================
 	// 🔹 layout
 	w.SetContent(container.NewVBox(
 		widget.NewLabel("⚙️ Config"),
@@ -257,7 +390,9 @@ func main() {
 
 		selectBtn,
 
-		container.NewHBox(generateBtn, buildBtn),
+		container.NewHBox(generateBtnIcon, runBtnIcons, widget.NewLabel("!! เอาไอคอน master มาวางที่แฟ้มงานก่อน")),
+
+		container.NewHBox(generateBtnBuild, buildBtn),
 
 		widget.NewLabel("📄 Output"),
 		scroll,
