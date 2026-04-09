@@ -19,7 +19,7 @@ oneimage
   └── oneimage_v1_0_0_0-x86_64.AppImage (ใช้งาน gui)
 
 แฟ้ม**โปรเจคเป้าหมาย/
-  ├── icon.png (ตั้งชื่อว่า icon.png) (Master)
+  ├── icon.png (ตั้งชื่อว่า icon.png) (Master*)
   ├── main.go
   ├── go.mod
   └── go.sum
@@ -31,3 +31,34 @@ oneimage
 3. เลือกแฟ้มโปรเจค (ระบบจะก็อปไฟล์ appimagetool-x86_64.AppImage ไปวางในแฟ้มโปรเจค)
 4. Generate script (จะมีไฟล์ Build.sh ขึ้นที่แฟ้มโปรเจค)
 5. Run build
+
+**ฟังชั้นเสริม**
+-ถ้าต้องการให้ได้ icon ขนาดเล็กมาใช้ใน taskbar
+-ต้องใช้ฟังชั้น _ "embed"
+
+//go:embed icons/*
+var iconFS embed.FS
+
+func loadIcon(size int) fyne.Resource {
+	var file string
+
+	switch {
+	case size >= 512:
+		file = "icons/icon-512.png" ///ที่อยู่
+	case size >= 256:
+		file = "icons/icon-256.png"
+	case size >= 128:
+		file = "icons/icon-128.png"
+	default:
+		file = "icons/icon-64.png"
+	}
+
+	data, _ := iconFS.ReadFile(file)
+	return fyne.NewStaticResource(file, data)
+}
+
+--	icon := loadIcon(64) //เอา data 64 มาใช้
+
+
+
+
