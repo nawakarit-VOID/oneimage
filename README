@@ -1,0 +1,81 @@
+ชื่อแอพ - oneimage
+    คุณสมบัติ
+        -ใช้สำหรับทำ .image (ไฟล์เดียว) 
+        -*.Appimage คือ ไฟล์ที่ทำงานได้ในไฟล์เดียว
+
+ขั้นตอนการใช้งาน 
+    แบบง่ายที่สุด
+        - ดาวน์โหลด oneimage-x86_64.AppImage
+        - appimagetool-x86_64.AppImage **หรือใหม่กว่าได้ แต่ต้องใช้ชื่อเดียวกันนี้**(1)*
+
+วิธีการใช้งาน
+    โครงสร้างแฟ้ม
+        1.สร้างแฟ้ม oneimage/
+        ├── appimagetool-x86_64.AppImage (**ใช้รุ่นใหม่กว่าได้**)
+        └── oneimage-x86_64.AppImage (ใช้งาน gui)
+
+        2.แฟ้มโปรเจคเป้าหมาย/
+        ├── icon.png (ตั้งชื่อว่า icon.png) (Master*)(512 อย่างน้อย)
+        ├── main.go
+        ├── go.mod
+        └── go.sum
+
+        2.เปิดโปรแกรม oneimage-x86_64.AppImage (ใช้งาน gui)
+            -oneimage-x86_64.AppImage จำเป็นต้องมี ไฟล์ appimagetool-x86_64.AppImage อยู่ในแฟ้มเดียวกันเสมอ
+            -สามารถเอาตัว *appimagetool-x86_64.AppImage version ที่ใหม่กว่ามาแทนได้ *แต่ชื่อต้องอ้างอิง (1)*
+
+        3.ใส่รายละเอียดไฟล์ 
+            1. ใ้ส่ชื่อ app ,exec ,Display (โดยส่วนมาก ใช้ชื่อเดีนวกันหมด)
+            2. ช่อง categories ก็มีให้เลือกตามข้อความ ด้านล่างช่องกรอก ปิดท้ายด้วย ; เสมอ เช่น x; , x;x; , x;x;x;
+            3. เลือกแฟ้มโปรเจค (ขั้นตอนนี้ระบบจะก็อปไฟล์ appimagetool-x86_64.AppImage ไปวางในแฟ้มโปรเจค)
+                    ***ถ้าสร้าง shotcut ให้กับโปรแกรม ขั้นตอนที่ 3 จะไม่ทำงาน***
+            4. Generate script (จะมีไฟล์ Build.sh ขึ้นที่แฟ้มโปรเจค)
+            5. Run build
+            6.จะมีไฟล์ ชื่อโปรแกรมที่ตั้งก่อนหน้า.Appimage อยู่ด้านในแฟ้มที่เลือก
+
+สิ่งที่เครื่องใช้งานจะต้องมี
+            -เครื่องที่ใช้จะต้องมี 
+            -ภาษา go (golang) (ในเครื่อง)
+            -ImageMagick
+            -และอื่นๆที่ไฟล์ go.mod ต้องใช้งาน
+
+คุณสมบัติเด่น
+            -ใช้ภาษา Go
+            -ใช้ได้กับภาษา Go (Golang)
+            -ใช้ fyne (gui) ทั้งหมด
+            -icon เป็นฟังชั้นเสริม(2)*
+
+                        (2)* การใช้งาน ฟังชั้นเสริม
+                        -ถ้าต้องการให้ได้ icon ขนาดเล็กมาใช้ใน taskbar
+                        -ต้องใช้ฟังชั้น _ "embed"
+
+                        //go:embed icons/*
+                        var iconFS embed.FS
+
+                        func loadIcon(size int) fyne.Resource {
+	                        var file string
+
+	                        switch {
+	                        case size >= 512:
+		                        file = "icons/icon-512.png" ///ที่อยู่
+	                        case size >= 256:
+		                        file = "icons/icon-256.png"
+	                        case size >= 128:
+		                        file = "icons/icon-128.png"
+	                        default:
+		                        file = "icons/icon-64.png"
+	                        }
+
+	                        data, _ := iconFS.ReadFile(file)
+	                        return fyne.NewStaticResource(file, data)
+                        }
+
+                        --	icon := loadIcon(64) //เอา data 64 มาใช้
+
+คุณสมบัติเด่น (ที่ควรระวังมาก)
+            -จำเป็นต้องขอการเข้าถึงทุกอย่างในเครื่อง
+
+## License
+This project is licensed under the GNU GPL v3 License.
+คำอธิบายภาษาไทยดูได้ที่ `LICENSE.th.md`
+
