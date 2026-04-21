@@ -173,7 +173,7 @@ func runScripticons(projectPath string, output *widget.Entry) {
 // ============================================================================
 // build gen+run
 // ============================================================================
-// generate build.sh
+// generate buildimage.sh
 func generateScriptbuild(projectPath string, cfg BuildConfig) error {
 	tmpl, err := template.New("build").Parse(buildTemplate)
 	if err != nil {
@@ -185,18 +185,18 @@ func generateScriptbuild(projectPath string, cfg BuildConfig) error {
 		return err
 	}
 
-	scriptPath := filepath.Join(projectPath, "build.sh")
+	scriptPath := filepath.Join(projectPath, "buildimage.sh")
 	return os.WriteFile(scriptPath, out.Bytes(), 0755)
 }
 
-// 🔥 run build.sh
+// 🔥 run buildimage.sh
 func runScriptbuild(projectPath string, output *widget.Entry) {
 
 	commands := [][]string{
-		{"gnome-terminal", "--", "bash", "-c", "cd '" + projectPath + "' && ./build.sh; exec bash"},
-		{"x-terminal-emulator", "-e", "bash", "-c", "cd '" + projectPath + "' && ./build.sh; exec bash"},
-		{"konsole", "-e", "bash", "-c", "cd '" + projectPath + "' && ./build.sh; exec bash"},
-		{"xfce4-terminal", "-e", "bash", "-c", "cd '" + projectPath + "' && ./build.sh; exec bash"},
+		{"gnome-terminal", "--", "bash", "-c", "cd '" + projectPath + "' && ./buildimage.sh; exec bash"},
+		{"x-terminal-emulator", "-e", "bash", "-c", "cd '" + projectPath + "' && ./buildimage.sh; exec bash"},
+		{"konsole", "-e", "bash", "-c", "cd '" + projectPath + "' && ./buildimage.sh; exec bash"},
+		{"xfce4-terminal", "-e", "bash", "-c", "cd '" + projectPath + "' && ./buildimage.sh; exec bash"},
 	}
 
 	for _, c := range commands {
@@ -363,7 +363,7 @@ func main() {
 			return
 		}
 
-		output.SetText("✅ build.sh created at:\n" + projectPath)
+		output.SetText("✅ buildimage.sh created at:\n" + projectPath)
 
 	})
 
@@ -466,7 +466,7 @@ var iconFS embed.FS
 1. ใ้ส่ชื่อ app ,exec ,Display (โดยส่วนมาก ใช้ชื่อเดีนวกันหมด)
 2. ช่อง categories ก็มีให้เลือกตามข้อความ ด้านล่างช่องกรอก ปิดท้ายด้วย ; เสมอ เช่น x; , x;x; , x;x;x;
 3. เลือกแฟ้มโปรเจค (ระบบจะก็อปไฟล์ appimagetool-x86_64.AppImage ไปวางในแฟ้มโปรเจค)
-4. Generate script (จะมีไฟล์ Build.sh ขึ้นที่แฟ้มโปรเจค)
+4. Generate script (จะมีไฟล์ buildimage.sh ขึ้นที่แฟ้มโปรเจค)
 5. Run build`)
 		//howto.Disable() // ทำให้แก้ไม่ได้ แต่ยัง select/copy ได้
 		d := dialog.NewCustom(
